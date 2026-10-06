@@ -4,6 +4,8 @@ import numpy as np
 from functools import wraps
 from time import perf_counter
 
+from cli import parse_arguments
+
 
 def measure_time(func):
     @wraps(func)
@@ -68,9 +70,6 @@ def process_manually(size: int, sigma: float, source: np.ndarray):
     return result.astype(np.uint8)
 
 def create_gaussian_kernel(size: int, sigma: float):
-    if size % 2 == 0:
-        raise ValueError("Kernel size must be odd")
-
     radius = size // 2
     kernel = np.zeros([size, size], dtype=np.float32)
 
@@ -86,16 +85,18 @@ def create_gaussian_kernel(size: int, sigma: float):
 
 
 def main() -> None:
-    image = cv2.imread("./images/input/Lenna_small.png")
+    args = parse_arguments()
 
-    size = 5
-    sigma = 1.5
+    image = cv2.imread(str(args.image_path))
 
-    lib_result = process_with_lib(size, sigma, image)
-    cv2.imwrite("./images/output/lib-Lenna.png", lib_result)
+    if image is None:
+        raise ValueError(f"Failed to decode image: {args.image_path}")
 
-    man_result = process_manually(size, sigma, image)
-    cv2.imwrite("./images/output/man-Lenna.png", man_result)
+    lib_result = process_with_lib(args.kernel_size, args.sigma, image)
+    cv2.imwrite(f"./images/output/lib-{args.image_path.name}", lib_result)
+
+    man_result = process_manually(args.kernel_size, args.sigma, image)
+    cv2.imwrite(f"./images/output/man-{args.image_path.name}", man_result)
 
     difference = cv2.absdiff(lib_result, man_result)
 
