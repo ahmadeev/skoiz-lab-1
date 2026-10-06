@@ -30,69 +30,63 @@ def process_with_lib(size: int, sigma: float, image: np.ndarray):
 
 
 @measure_time
-def process_manually(size: int, sigma: float, image: np.ndarray):
-    result = np.zeros_like(image, dtype=np.float64)
+def process_manually(size: int, sigma: float, source: np.ndarray):
+    result = np.zeros_like(source, dtype=np.float32)
 
     kernel = create_gaussian_kernel(size, sigma)
 
     radius = size // 2
 
-    for y in range(len(image)):
-        for x in range(len(image[0])):
-            result[y][x] = filter_pixel(x, y, radius, image, kernel)
+    padded = np.pad(
+        source,
+        ((radius, radius), (radius, radius), (0, 0)),
+        mode="reflect",
+    )
 
-    return np.clip(result, 0, 255).astype(np.uint8)
+    height, width = source.shape[:2]
 
+    color = np.zeros(3, dtype=np.float32)
 
-def filter_pixel(x: int, y: int, radius: int, source: np.ndarray, kernel: np.ndarray) -> np.ndarray:
-    result = np.zeros(3, dtype=np.float64)
+    for y in range(height):
+        for x in range(width):
+            color.fill(0)
 
-    for dy in range(-radius, radius + 1):
-        y_neighbour = y + dy
+            for dy in range(-radius, radius + 1):
+                y_neighbour = y + dy + radius
 
-        if not (0 <= y_neighbour < source.shape[0]):
-            y_neighbour = y - dy
+                for dx in range(-radius, radius + 1):
+                    x_neighbour = x + dx + radius
 
-        for dx in range(-radius, radius + 1):
-            x_neighbour = x - dx if x + dx < 0 else x + dx
+                    weight = kernel[dy + radius, dx + radius]
+                    color += padded[y_neighbour, x_neighbour] * weight
 
-            if not (0 <= x_neighbour < source.shape[1]):
-                x_neighbour = x - dx
+            result[y, x] = color
 
-            result += source[y_neighbour, x_neighbour] * kernel[dy + radius][dx + radius]
+    np.rint(result, out=result)
+    np.clip(result, 0, 255, out=result)
 
-    return result
-
+    return result.astype(np.uint8)
 
 def create_gaussian_kernel(size: int, sigma: float):
     if size % 2 == 0:
         raise ValueError("Kernel size must be odd")
 
     radius = size // 2
-    kernel = []
+    kernel = np.zeros([size, size], dtype=np.float32)
 
     for y in range(-radius, radius + 1):
-        row = []
-
         for x in range(-radius, radius + 1):
-            value = math.exp(
+            kernel[y + radius, x + radius] = math.exp(
                 -(x * x + y * y) / (2 * sigma * sigma)
             )
-            row.append(value)
 
-        kernel.append(row)
-
-    total = sum(sum(row) for row in kernel)
-
-    for y in range(size):
-        for x in range(size):
-            kernel[y][x] /= total
+    kernel /= kernel.sum()
 
     return kernel
 
 
 def main() -> None:
-    image = cv2.imread("./images/input/demo.png")
+    image = cv2.imread("./images/input/Lenna_small.png")
 
     size = 5
     sigma = 1.5
