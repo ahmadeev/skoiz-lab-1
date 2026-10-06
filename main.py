@@ -93,10 +93,10 @@ def main() -> None:
         raise ValueError(f"Failed to decode image: {args.image_path}")
 
     lib_result = process_with_lib(args.kernel_size, args.sigma, image)
-    cv2.imwrite(f"./images/output/lib-{args.image_path.name}", lib_result)
+    cv2.imwrite(f"./images/output/lib-{args.kernel_size}x{args.kernel_size}-{args.sigma}__{args.image_path.name}", lib_result)
 
     man_result = process_manually(args.kernel_size, args.sigma, image)
-    cv2.imwrite(f"./images/output/man-{args.image_path.name}", man_result)
+    cv2.imwrite(f"./images/output/man-{args.kernel_size}x{args.kernel_size}-{args.sigma}__{args.image_path.name}", man_result)
 
     difference = cv2.absdiff(lib_result, man_result)
 
