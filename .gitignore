@@ -1,5 +1,7 @@
 /helpers
-/images
+/images/input/*.png
+/images/output/*.png
+!/images/input/Lenna_small.png
 
 ### Python template
 # Byte-compiled / optimized / DLL files
